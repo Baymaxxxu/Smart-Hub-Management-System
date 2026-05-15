@@ -3,63 +3,98 @@
 namespace App\Http\Controllers;
 
 use App\Models\Checkin;
+use App\Models\Equipment;
 use Illuminate\Http\Request;
 
 class CheckinController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
+        $checkins = Checkin::with(['user', 'equipment'])
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data check-in berhasil diambil',
+            'data' => $checkins
+        ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function checkin(Request $request)
     {
-        //
+        $request->validate([
+            'equipment_id' => 'required|exists:equipment,id',
+        ]);
+
+        $equipment = Equipment::find($request->equipment_id);
+
+        if ($equipment->status === 'checked_in') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Equipment sedang digunakan atau sudah check-in'
+            ], 422);
+        }
+
+        if ($equipment->status === 'maintenance') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Equipment sedang maintenance dan tidak dapat digunakan'
+            ], 422);
+        }
+
+        $checkin = Checkin::create([
+            'user_id' => $request->user()->id,
+            'equipment_id' => $equipment->id,
+            'checkin_time' => now(),
+            'checkout_time' => null,
+            'status' => 'checked_in',
+        ]);
+
+        $equipment->update([
+            'status' => 'checked_in',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Check-in equipment berhasil',
+            'data' => $checkin->load(['user', 'equipment'])
+        ], 201);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function checkout(Request $request)
     {
-        //
-    }
+        $request->validate([
+            'equipment_id' => 'required|exists:equipment,id',
+        ]);
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Checkin $checkin)
-    {
-        //
-    }
+        $checkin = Checkin::where('equipment_id', $request->equipment_id)
+            ->where('status', 'checked_in')
+            ->latest()
+            ->first();
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Checkin $checkin)
-    {
-        //
-    }
+        if (! $checkin) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data check-in aktif tidak ditemukan'
+            ], 404);
+        }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Checkin $checkin)
-    {
-        //
-    }
+        $checkin->update([
+            'checkout_time' => now(),
+            'status' => 'checked_out',
+        ]);
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Checkin $checkin)
-    {
-        //
+        $equipment = Equipment::find($request->equipment_id);
+
+        $equipment->update([
+            'status' => 'available',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Check-out equipment berhasil',
+            'data' => $checkin->load(['user', 'equipment'])
+        ]);
     }
 }
