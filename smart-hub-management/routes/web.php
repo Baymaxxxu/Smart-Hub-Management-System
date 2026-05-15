@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\EquipmentController;
+use App\Http\Controllers\Web\RoomController;
 
 Route::get('/', function () {
     return redirect('/login');
@@ -22,4 +23,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/web/equipment/{id}/edit', [EquipmentController::class, 'edit']);
     Route::put('/web/equipment/{id}', [EquipmentController::class, 'update']);
     Route::delete('/web/equipment/{id}', [EquipmentController::class, 'destroy']);
+
+    Route::get('/web/rooms', [RoomController::class, 'index']);
+    Route::get('/web/rooms/create', [RoomController::class, 'create']);
+    Route::post('/web/rooms', [RoomController::class, 'store']);
+    Route::get('/web/rooms/{id}/edit', [RoomController::class, 'edit']);
+    Route::put('/web/rooms/{id}', [RoomController::class, 'update']);
+    Route::delete('/web/rooms/{id}', [RoomController::class, 'destroy']);
 });
