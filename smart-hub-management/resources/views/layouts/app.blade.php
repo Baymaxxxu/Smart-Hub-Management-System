@@ -120,6 +120,7 @@
         <div>
             <a href="/dashboard">Dashboard</a>
             <a href="/web/equipment">Equipment</a>
+            <a href="/web/rooms">Rooms</a>
 
             <form action="/logout" method="POST" style="display:inline;">
                 @csrf
